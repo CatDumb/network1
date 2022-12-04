@@ -27,6 +27,7 @@ def handle_client(conn, addr):
             msg_length = int(msg_length)
             msg = conn.recv(msg_length).decode(FORMAT)
             if msg == DISCONNECT_MESSAGE:
+                print(f'[DISCONNECTED] {addr} has disconnected from central server.')
                 connected = False
 
             print(f"[{addr}] {msg}")

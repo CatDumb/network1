@@ -7,6 +7,8 @@
 
 import socket
 import threading 
+import os
+import sys
 
 FORMAT = "utf-8"
 HEADER = 64
@@ -68,12 +70,13 @@ def listen_for_others():
 def connect_to_central():
     client_socket.connect(central_addr)
     is_connected = True
+    send(str(this_addr))
     while is_connected:
         message = input("[client]: ")
         send(message)
         if message == DISCONNECT_MESSAGE:
             is_connected = False
-            break
+            os._exit()
 
 
 
