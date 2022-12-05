@@ -43,7 +43,7 @@ def handle_client(conn, addr):
             if msg == DISCONNECT_MESSAGE:
                 connected = False
 
-            print(f"[{addr}] {msg}")
+            print(f"[{addr} said]: {msg}")
             conn.send("Msg received".encode(FORMAT))
 
     conn.close()
@@ -57,6 +57,13 @@ this_port = 12569
 this_addr = (this_ip, this_port)
 listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listening_socket.bind(this_addr)
+
+
+
+
+
+
+
 
 ## every peer has to LISTEN for connections from other peers
 def listen_for_others():
