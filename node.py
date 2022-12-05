@@ -62,6 +62,9 @@ listening_socket.bind(this_addr)
 def listen_for_others():
     listening_socket.listen()
     while True:
+        # important decision to make here
+        # do we wanna chat with "everyone"? or just maximum of, like, 4 people at a time?
+        # makes it easier you know
         conn, addr = listening_socket.accept()
         client_thread = threading.Thread(target=handle_client, args=(conn, addr))
         client_thread.start()
@@ -76,13 +79,12 @@ def connect_to_central():
         send(message)
         if message == DISCONNECT_MESSAGE:
             is_connected = False
-            os._exit()
+            os._exit(0)
 
 
 
 
-if __name__ == "__main__":
-    central_server_thread = threading.Thread(target=connect_to_central)
-    central_server_thread.start()
+if __name__ == "__main__":    
+    connect_to_central()
     listening_thread = threading.Thread(target=listen_for_others)
     listening_thread.start()
