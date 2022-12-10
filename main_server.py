@@ -57,13 +57,17 @@ def handle_client(conn, addr):
             for index, name in enumerate(aliases):
                 # client_name "AT" client_address, makes sense?
                 name_addr_tuple = name + '@' + str(client_listeners[index])
-                reply += name_addr_tuple + '; '
+                reply += name_addr_tuple + '__'
+            reply = protocols.REFRESH_UPDATE + ';;' + reply
+            print(reply)
             conn.send(str(reply).encode('utf-8'))
         elif protocol == protocols.DISCONNECT:
             index = connections.index(conn)
             connections.remove(conn)
             alias = aliases[index]
             aliases.remove(alias)
+            debug_message = f'{alias} just disconnected.'
+            print(debug_message)
             break
 
 

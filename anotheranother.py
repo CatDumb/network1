@@ -1,3 +1,5 @@
+# for testing purposes
+
 import socket
 import threading
 import protocols
@@ -13,7 +15,7 @@ global_listeners = []
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 19024
+this_port = 19027
 this_addr = (this_ip, this_port)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(this_addr)
