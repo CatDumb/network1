@@ -15,7 +15,7 @@ global_listeners = []
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 19027
+this_port = 19026
 this_addr = (this_ip, this_port)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(this_addr)
@@ -117,8 +117,8 @@ sg.theme("SandyBeach")
 
 
 # GUI to get server IP and port
-central_ip = sg.popup_get_text("Enter server IP", "Welcome to Chatatouille - IP")
-central_port = sg.popup_get_text("Enter server port", "Welcome to Chatatouille - Port")
+central_ip = sg.popup_get_text("Enter server IP", "Welcome to Chatatouille")
+central_port = sg.popup_get_text("Enter server port", "Welcome to Chatatouille")
 
 
 # connect after getting ip and port
@@ -132,7 +132,7 @@ except socket.error as e:
     
 
 # GUI to get chat alias
-my_alias = sg.popup_get_text("Please enter your name", "Welcome to Chatatouille - Name")
+my_alias = sg.popup_get_text("Please enter your name", "Welcome to Chatatouille")
 
 status = do_login(my_alias)
 onlinePeersLayout = [
@@ -150,7 +150,6 @@ onlinePeersLayout = [
 ]
 
 message_layout = [
-    [sg.Text(key="receiver")],
     [
         sg.Listbox(
             values=conversation_list,
@@ -160,7 +159,7 @@ message_layout = [
             no_scrollbar=True,
         )
     ],
-    [sg.Button("Upload"), sg.Input(), sg.Button("Send")],
+    [sg.Input(), sg.Button("Send")],
 ]
 
 chat_layout = [
@@ -199,19 +198,16 @@ while True:
                     index = global_aliases.index(alias)
                     global_aliases.remove(alias)
                     listener = global_listeners[index]
-                    global_listeners.remove(listener)
-            # for registered_user in global_aliases:
-            #     if registered_user not in to_be_tokenized:
-            #         index = global_aliases.index(registered_user)
-            #         global_aliases.remove(registered_user)
-            #         registered_listener = global_listeners[index]
-            #         global_listeners.remove(registered_listener)
-                    
-        print(global_aliases)
-        print(global_listeners)
+                    global_listeners.remove(listener)                    
+        # print(global_aliases) #debug
+        # print(global_listeners) #debug
         window.refresh()
         window['onlinePeers'].update(values=global_aliases)
-    if (event == sg.WIN_CLOSED or event == "Logout"):
+    elif event == "onlinePeers":
+        selection = values[event]
+        if selection:
+            print(selection[0])
+    elif (event == sg.WIN_CLOSED or event == "Logout"):
         client_socket.send((protocols.DISCONNECT).encode('utf-8'))
         client_socket.close()
         break
