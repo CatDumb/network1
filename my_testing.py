@@ -13,7 +13,7 @@ global_listeners = []
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 19024
+this_port = 19025
 this_addr = (this_ip, this_port)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(this_addr)
@@ -54,15 +54,8 @@ def connect_to_others(foreign_addr):
     foreign_ip = foreign_addr.split(', ')[0]
     foreign_port = foreign_addr.split(', ')[1]
     new_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    foreign_addr = (foreign_ip, int(foreign_port))
-    try:
-        new_client_socket.connect(foreign_addr)
-    except socket.error as e:
-        print(e)
-        sys.exit()
-    print('connected')
+    new_client_socket.connect(foreign_ip, int(foreign_port))
     outward_connections.append(new_client_socket)
-    print(outward_connections)
 
 # -----------CONNECT TO OTHER CONFIGURATION END----------
 
@@ -240,8 +233,8 @@ while True:
             # print(foreign_ip)
             # print(foreign_port)
             # print(type(address_to_connect)) -- it it type string
-            client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,))
-            client_thread.start()
+            #client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,))
+
 
     elif (event == sg.WIN_CLOSED or event == "Logout"):
         client_socket.send((protocols.DISCONNECT).encode('utf-8'))
