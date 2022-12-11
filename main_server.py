@@ -11,7 +11,7 @@ client_listeners = []
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_ip = socket.gethostbyname(socket.gethostname())
-server_port = 16996
+server_port = 6999
 server_socket.bind((server_ip, server_port))
 
 

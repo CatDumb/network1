@@ -3,22 +3,26 @@ import threading
 import protocols
 import sys
 import PySimpleGUI as sg
+import time
 
 
 global_aliases = []
 global_listeners = []
-
+conversation_list = []
 
 # -----------LISTENER CONFIGURATION START----------
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 19024
+this_port = 15060
 this_addr = (this_ip, this_port)
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(this_addr)
-server_socket.listen()
+listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listening_socket.bind(this_addr)
+listening_socket.listen()
 
+
+THREAD_EVENT = '-THREAD-'
+cp = sg.cprint
 
 # maintains connected peers
 connections = []
@@ -39,55 +43,39 @@ aliases = []
 
 # using a listbox to store the conversation
 # can we use a list and append to that?
-conversation_list = []
-
 
 # -----------CONNECT TO OTHER CONFIGURATION START----------
-outward_connected_aliases = []
-outward_connections = []
+from_outer_aliases = []
+from_outer_connections=[]
 
 
-def connect_to_others(foreign_addr):
+# where this peer connects to others
+to_outer_connections = []
+to_outer_aliases = []
+conversation_list_in = []
+conversation_list_out = []
+def on_new_connection():
+    while True:
+        conn, addr = listening_socket.accept()
+        print(f'{addr} connected')
+        from_outer_connections.append(conn)
+
+def connect_to_others(raw_foreign_addr):
     # get ip and port from this string first
     # ('ip', port)
-    foreign_addr = foreign_addr.strip("()")
-    foreign_ip = foreign_addr.split(', ')[0]
-    foreign_port = foreign_addr.split(', ')[1]
-    new_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    raw_foreign_addr = raw_foreign_addr.strip("()")
+    foreign_ip = raw_foreign_addr.split(', ')[0]
+    foreign_ip = foreign_ip.replace("'", "")
+    # print('from functioasfasf: ' + foreign_ip)
+    foreign_port = raw_foreign_addr.split(', ')[1]
     foreign_addr = (foreign_ip, int(foreign_port))
-    try:
-        new_client_socket.connect(foreign_addr)
-    except socket.error as e:
-        print(e)
-        sys.exit()
-    print('connected')
-    outward_connections.append(new_client_socket)
-    print(outward_connections)
-
-# -----------CONNECT TO OTHER CONFIGURATION END----------
-
-
-
-def listen_for_others():
-    while True:
-        conn, addr = server_socket.accept()
-        print(f'[New connection] {addr} connected!')
-        connections.append(conn)
-
-
-
-
-
-
-def handle_client(conn, addr):
-    print(f"client {addr} connected.")
-    delimeter = " "
-    connected = True
-    sending_thread = threading.Thread(target=send_message, args=(conn,))
-    receiving_thread = threading.Thread(target=receive_message, args=(conn,))
-    sending_thread.start()
+    # print('from function: ' + str(foreign_addr))
+    new_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    new_client_socket.connect(foreign_addr)
+    receiving_thread = threading.Thread(target=receive_message, args=(new_client_socket,), daemon=True)
+    sending_thread = threading.Thread(target=send_message, args=(new_client_socket,), daemon=True)
     receiving_thread.start()
-
+    sending_thread.start()
 
 
 def receive_message(conn):
@@ -102,6 +90,20 @@ def send_message(conn):
         message = input("Enter a message: ")
         conversation_list.append(message)
         conn.send(message.encode())
+
+
+def the_thread(window):
+    window.write_event_value('-THREAD-', (threading.current_thread().name, i))
+    i += 1
+# -----------CONNECT TO OTHER CONFIGURATION END----------
+
+
+
+def listen_for_others():
+    while True:
+        conn, addr = listening_socket.accept()
+        print(f'[New connection] {addr} connected!')
+        connections.append(conn)
 
 
 login_status = ''
@@ -157,6 +159,7 @@ my_alias = sg.popup_get_text("Please enter your name", "Welcome to Chatatouille"
 
 status = do_login(my_alias)
 onlinePeersLayout = [
+    [sg.Button('Refresh'), sg.Button("Logout")],
     [
         sg.Listbox(
             values=[],
@@ -166,21 +169,21 @@ onlinePeersLayout = [
             enable_events=True,
         )
     ],
-    [sg.Button("Refresh")],
-    [sg.Button("Logout", pad=((0, 0), (50, 20)))],
+    #[sg.Button("Refresh")],
+    #[sg.Button("Logout", pad=((0, 0), (50, 20)))],
 ]
 
 message_layout = [
     [
-        sg.Listbox(
-            values=conversation_list,
-            expand_x=True,
-            size=(0, 15),
-            key="chat_box",
-            no_scrollbar=True,
+        sg.Multiline(
+            key = '-CHATOUT-',
+            enable_events = True,
+            size = (65,20),
+            reroute_cprint=True
         )
     ],
-    [sg.Input(), sg.Button("Send")],
+    [sg.Text('Type your message: '), sg.Input(key='-IN-', size=(45,1))],
+    [sg.B('Start a thread')]
 ]
 
 chat_layout = [
@@ -191,11 +194,13 @@ chat_layout = [
         ),
     ]
 ]
-
+listening_thread = threading.Thread(target=on_new_connection, daemon=True)
+listening_thread.start()
 window = sg.Window(f"Chatatouille - {my_alias}", chat_layout)
 # Event Loop to process "events" and get the "values" of the inputs
 while True:
     event, values = window.read()
+    cp(event, values)
     if event == "Refresh":
         client_socket.send((protocols.REFRESH).encode('utf-8'))
         reply = client_socket.recv(2048).decode('utf-8')
@@ -224,27 +229,34 @@ while True:
         # print(global_listeners) #debug
         window.refresh()
         window['onlinePeers'].update(values=global_aliases)
+    elif event == THREAD_EVENT:
+        cp(f'Data from the thread ')
+        cp(f'{values[THREAD_EVENT]}')
     elif event == "onlinePeers":
+        print(event)
+        print(values)
         selection = values[event]
         if selection:
-            print(selection[0])
+            # print(selection[0])
+            # get the alias to connect to
             alias_to_connect = selection[0]
-            outward_connected_aliases.append(alias_to_connect)
+            # append that to list to track
+            # ------
+            to_outer_aliases.append(alias_to_connect)
             index = global_aliases.index(alias_to_connect)
             address_to_connect = global_listeners[index]
-            print(outward_connected_aliases)
-            print(address_to_connect)
-            # address_to_connect = address_to_connect.strip("()")
-            # foreign_ip = address_to_connect.split(', ')[0]
-            # foreign_port = address_to_connect.split(', ')[1]
-            # print(foreign_ip)
-            # print(foreign_port)
-            # print(type(address_to_connect)) -- it it type string
-            client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,))
+            # to_outer_connections.append(address_to_connect)
+            # ------            
+            # print(outward_connected_aliases)
+            print('here: ' + address_to_connect)
+            client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,), daemon=True)
             client_thread.start()
+
 
     elif (event == sg.WIN_CLOSED or event == "Logout"):
         client_socket.send((protocols.DISCONNECT).encode('utf-8'))
         client_socket.close()
         break
+    # elif event.startswith('Start'):
+    #     threading.Thread(target=the_thread, args=(window,), daemon=True).start()
 window.close()

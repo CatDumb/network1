@@ -13,11 +13,11 @@ global_listeners = []
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 19025
+this_port = 15061
 this_addr = (this_ip, this_port)
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(this_addr)
-server_socket.listen()
+listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listening_socket.bind(this_addr)
+listening_socket.listen()
 
 
 # maintains connected peers
@@ -45,16 +45,25 @@ conversation_list = []
 # -----------CONNECT TO OTHER CONFIGURATION START----------
 outward_connected_aliases = []
 outward_connections = []
+from_outer_connections=[]
+def on_new_connection():
+    while True:
+        conn, addr = listening_socket.accept()
+        print(f'{addr} connected')
+        from_outer_connections.append(conn)
 
-
-def connect_to_others(foreign_addr):
+def connect_to_others(raw_foreign_addr):
     # get ip and port from this string first
     # ('ip', port)
-    foreign_addr = foreign_addr.strip("()")
-    foreign_ip = foreign_addr.split(', ')[0]
-    foreign_port = foreign_addr.split(', ')[1]
+    raw_foreign_addr = raw_foreign_addr.strip("()")
+    foreign_ip = raw_foreign_addr.split(', ')[0]
+    foreign_ip = foreign_ip.replace("'", "")
+    # print('from functioasfasf: ' + foreign_ip)
+    foreign_port = raw_foreign_addr.split(', ')[1]
+    foreign_addr = (foreign_ip, int(foreign_port))
+    # print('from function: ' + str(foreign_addr))
     new_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    new_client_socket.connect(foreign_ip, int(foreign_port))
+    new_client_socket.connect(foreign_addr)
     outward_connections.append(new_client_socket)
 
 # -----------CONNECT TO OTHER CONFIGURATION END----------
@@ -63,7 +72,7 @@ def connect_to_others(foreign_addr):
 
 def listen_for_others():
     while True:
-        conn, addr = server_socket.accept()
+        conn, addr = listening_socket.accept()
         print(f'[New connection] {addr} connected!')
         connections.append(conn)
 
@@ -184,7 +193,8 @@ chat_layout = [
         ),
     ]
 ]
-
+listening_thread = threading.Thread(target=on_new_connection, daemon=True)
+listening_thread.start()
 window = sg.Window(f"Chatatouille - {my_alias}", chat_layout)
 # Event Loop to process "events" and get the "values" of the inputs
 while True:
@@ -226,14 +236,9 @@ while True:
             index = global_aliases.index(alias_to_connect)
             address_to_connect = global_listeners[index]
             print(outward_connected_aliases)
-            print(address_to_connect)
-            # address_to_connect = address_to_connect.strip("()")
-            # foreign_ip = address_to_connect.split(', ')[0]
-            # foreign_port = address_to_connect.split(', ')[1]
-            # print(foreign_ip)
-            # print(foreign_port)
-            # print(type(address_to_connect)) -- it it type string
-            #client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,))
+            print('here: ' + address_to_connect)
+            client_thread = threading.Thread(target=connect_to_others, args=(address_to_connect,), daemon=True)
+            client_thread.start()
 
 
     elif (event == sg.WIN_CLOSED or event == "Logout"):
