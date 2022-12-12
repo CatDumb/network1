@@ -21,7 +21,7 @@ conversation_list = []
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to 
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 15060
+this_port = 15061
 this_addr = (this_ip, this_port)
 listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listening_socket.bind(this_addr)
@@ -132,7 +132,7 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # receiving_thread.start()
 
 
-sg.theme("DarkRed2")
+sg.theme("DarkRed1")
 # PySimpleGUI uses camelCase, not pep8 like_this
 # we'll try our best to not make mistakes!
 

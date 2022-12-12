@@ -4,11 +4,16 @@ import protocols
 import database
 
 
+# the three lists serve the following purposes:
+# - connections: stores the connected client sockets
+# - aliases: stores the alias associated with each client socket.
+# - client_listeners: stores the listening socket of each client and "advertises" it whenever a client requires
 connections = []
 aliases = []
 client_listeners = []
 
 
+# setting up the server socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_ip = socket.gethostbyname(socket.gethostname())
 server_port = 6999
@@ -37,20 +42,22 @@ def handle_client(conn, addr):
             if reply == 11:
                 # code 11: the alias wasn't in the database
                 # we create the alias and send welcome msg
+                print(f'{user_alias} just connected!')
                 aliases.append(user_alias)
                 user_listener = (user_listener_ip, int(user_listener_port))
                 client_listeners.append(user_listener)
-                print(aliases)
-                print(client_listeners)
+                # print(aliases)
+                # print(client_listeners)
                 conn.send(str(reply).encode('utf-8'))
             elif reply == 12:
                 # code 12: the alias already in database
                 # we send welcome back message
+                print(f'{user_alias} just connected!')
                 aliases.append(user_alias)
                 user_listener = (user_listener_ip, int(user_listener_port))
                 client_listeners.append(user_listener)
-                print(aliases)
-                print(client_listeners)
+                # print(aliases)
+                # print(client_listeners)
                 conn.send(str(reply).encode('utf-8'))
         elif protocol == protocols.REFRESH:
             reply = ''
@@ -59,19 +66,21 @@ def handle_client(conn, addr):
                 name_addr_tuple = name + '@' + str(client_listeners[index])
                 reply += name_addr_tuple + '__'
             reply = protocols.REFRESH_UPDATE + ';;' + reply
-            print(reply)
+            # print(reply)
             conn.send(str(reply).encode('utf-8'))
         elif protocol == protocols.DISCONNECT:
             index = connections.index(conn)
             connections.remove(conn)
             alias = aliases[index]
             aliases.remove(alias)
-            debug_message = f'{alias} just disconnected.'
+            # shows who just disconnected
+            debug_message = f'{alias} just disconnected!'
             print(debug_message)
             break
 
 
 server_socket.listen()
+# print to the debug console the address
 print(f'Server is on and listening on {server_ip}:{server_port}')
 while True:
     connection_socket, addr = server_socket.accept()
