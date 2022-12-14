@@ -24,7 +24,7 @@ CONNECTION_DICTIONARY = {}
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to
 this_ip = socket.gethostbyname(socket.gethostname())
-this_port = 15060
+this_port = 15067
 this_addr = (this_ip, this_port)
 listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listening_socket.bind(this_addr)
@@ -138,12 +138,39 @@ def receive_message(conn, addr, in_or_out):
         print('[debug]: ',CONVO_DICT[client_alias])
         if client_alias == CURRENT_ALIAS:
             window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].update('')
-            window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print('\n'.join(CONVO_DICT[client_alias].split("?<>?")))
-        
+            window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print('\n'.join(CONVO_DICT[client_alias].split("?<>?")), text_color='blue')
+            # window.Refresh()
+        # if in_or_out == "in" and CURRENT_ALIAS == client_alias:
+        #     print(CONVO_DICT[client_alias])
+        #     msg_list = CONVO_DICT[client_alias].split('?<>?')
+        #     for msg in msg_list:
+        #         if msg != '':
+        #             window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(
+        #                 f"[{client_alias} to {my_alias}]: " + msg
+        #             )
+        # if in_or_out == "out":
+        #     window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(
+        #         f"[{client_alias} to {my_alias}]: " + client_message_content
+        #     )
+        # if in_or_out == "in":
+        #     my_index = my_helper.find_index(FROM_OUTER_ALIASES, client_alias)
+        # CONVERSATION_LIST.append({"alias": client_alias, "chat_content": chat_content})
+        # conversation_list.append(client_message_content)
+        # print(client_message_content)
+        # print(CONVERSATION_LIST)
+
 
 def send_message(conn):
     introduction_msg = protocols.INTRODUCE + "__" + my_alias
     conn.send(introduction_msg.encode("utf-8"))
+    # while True:
+    #     window.refresh()
+    #     message = input()
+    #     CONVO_DICT[CURRENT_ALIAS] += message + "?<>?"
+    #     window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(f"[{my_alias}]: " + message)
+    #     conn.send((protocols.PEERSEND + "__" + message).encode("utf-8"))
+
+
 # -----------CONNECT TO OTHER CONFIGURATION END----------
 login_status = ""
 
@@ -161,6 +188,12 @@ def do_login(alias):
 
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# sending_thread = threading.Thread(target=send_message, args=(client_socket,))
+# receiving_thread = threading.Thread(target=receive_message, args=(client_socket,))
+# sending_thread.start()
+# receiving_thread.start()
+
 
 # it's festive season!
 sg.theme("DarkRed1")
@@ -296,10 +329,12 @@ while True:
             # CURRENT_ALIAS = alias_to_connect
             if CURRENT_ALIAS not in CONVO_DICT:
                 CONVO_DICT[CURRENT_ALIAS] = ""
-            # (for debugging) print(f'[{CURRENT_ALIAS} to me]: '+ f'\n[{CURRENT_ALIAS} to me]: '.join(CONVO_DICT[CURRENT_ALIAS].split("?<>?")))
+            # CONVO_DICT[CURRENT_ALIAS] += '?read?'
+            print('cc')
+            print(f'[{CURRENT_ALIAS} to me]: '+ f'\n[{CURRENT_ALIAS} to me]: '.join(CONVO_DICT[CURRENT_ALIAS].split("?<>?")))
             if CONVO_DICT[CURRENT_ALIAS] != "":
                 window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].update('')
-                window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(f'\n'.join(CONVO_DICT[CURRENT_ALIAS].split("?<>?")))
+                window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(f'\n'.join(CONVO_DICT[CURRENT_ALIAS].split("?<>?")), text_color='blue')
             
             window["-CURRENTALIAS-"].update(f"Now chatting with {alias_to_connect}")
             client_thread = threading.Thread(
@@ -316,12 +351,15 @@ while True:
         # print(values["-QUERY-"].rstrip())
         query_to_print = f'[{my_alias}]: ' + query
         CONVO_DICT[CURRENT_ALIAS] += query_to_print + '?<>?'
-        window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(query_to_print)
+        window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(query_to_print, text_color='blue')
         print('[DEBUG] after send event', CONNECTION_DICTIONARY[CURRENT_ALIAS])
+        # MY_DICT[CURRENT_ALIAS].send((f'{my_alias}' + query.encode('utf-8')))
         CONNECTION_DICTIONARY[CURRENT_ALIAS].send((protocols.PEERSEND + "__" + query).encode('utf-8'))
 
     elif event == sg.WIN_CLOSED or event == "Log off":
         client_socket.send((protocols.DISCONNECT).encode("utf-8"))
         client_socket.close()
         break
+    # elif event.startswith('Start'):
+    #     threading.Thread(target=the_thread, args=(window,), daemon=True).start()
 window.close()
