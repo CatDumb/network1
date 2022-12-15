@@ -8,16 +8,23 @@
 # conversation_store['Hih'] = 'cc'
 # print(conversation_store)
 
-# print(conversation_store[0])
+# # print(conversation_store[0])
+# bytes_data = b''
+# BUFFER_SIZE = 1024 * 4
+# filename = "trash_cart_1.png"
+# with open(filename, 'rb') as f:
+# 	while True:
+# 		bytes_read = f.read(BUFFER_SIZE)
+# 		if not bytes_read:
+# 			f.close()
+# 			break
+# 		bytes_data += bytes_read
 
-#create a function:
-def myfunction():
-  global x
-  x = "hello"
+# with open(f'received_{filename}', 'wb') as f:
+# 	f.write(bytes_data)
 
-#execute the function:
-myfunction()
+import os
 
-#x should now be global, and accessible in the global scope.
-x = x + 'hello'
-print(x)
+path = os.getcwd()
+dir_list = os.listdir(path)
+print(dir_list)
