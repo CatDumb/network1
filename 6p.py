@@ -5,9 +5,6 @@ import sys
 import PySimpleGUI as sg
 import my_helper
 import os
-import platform
-from time import sleep
-from pathlib import Path
 
 # global_aliases list stores the available peers aliases which this one can connect to
 # it's natural to omit oneself from such list ( no "Talking To Myself" ^^)
@@ -18,12 +15,12 @@ CURRENT_ALIAS = ""
 recv_file_name = ""
 GLOBAL_ALIASES = []
 GLOBAL_LISTENERS = []
-CONVERSATION_LIST = []
-conversation_list = []
 CONVO_DICT = {}
 CONNECTION_DICTIONARY = {}
 BUFFER = 4096
 FORMAT = "utf-8"
+
+
 # -----------LISTENER CONFIGURATION START----------
 # setting up the peer's own listening socket (like a server)
 # where other peers can connect to
@@ -57,18 +54,11 @@ aliases = []
 # -----------CONNECT TO OTHER CONFIGURATION START----------
 FROM_OUTER_CONNECTIONS = []
 FROM_OUTER_ALIASES = []
-from_outer_aliases = []
-from_outer_connections = []
 
 
 # where this peer connects to others
-TO_OUTER_CONNECTIONS = []
 TO_OUTER_ALIASES = []
-
-to_outer_connections = []
-to_outer_aliases = []
-conversation_list_in = []
-conversation_list_out = []
+TO_OUTER_CONNECTIONS = []
 
 
 def on_new_connection():
@@ -98,7 +88,7 @@ def connect_to_others(raw_foreign_addr):
     new_client_socket.bind((this_ip, 0))
     new_client_socket.connect(foreign_addr)
     print("[DEBUG] From connect to others function: ", new_client_socket)
-    to_outer_connections.append(new_client_socket)
+    TO_OUTER_CONNECTIONS.append(new_client_socket)
     receiving_thread = threading.Thread(
         target=receive_message,
         args=(
@@ -136,57 +126,27 @@ def receive_message(conn, addr, in_or_out):
         actual_chat_msg = conn.recv(BUFFER)
         print("going insane rn:", actual_chat_msg)
         actual_chat_msg = actual_chat_msg.decode(FORMAT)
-       
-        if protocols.FILETRANSBEGIN in actual_chat_msg:
-            print("===============================")
-            print(actual_chat_msg)
-            print("===============================")
 
-            CONVO_DICT[client_alias] += f'Received file from {client_alias}.' + "<!>"
-            window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].update('')
+        if protocols.FILETRANSBEGIN in actual_chat_msg:
+            # print("===============================")
+            # print(actual_chat_msg)
+            # print("===============================")
+
+            CONVO_DICT[client_alias] += f"Received file from {client_alias}." + "<!>"
+            window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].update("")
             window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(
                 "\n".join(CONVO_DICT[client_alias].split("<!>"))
             )
             receive_file(conn)
             continue
-            # my_file_thread = threading.Thread(target=receive_file, args=(conn, recv_file_name,))
-            # my_file_thread.start()
-            # my_file_thread.join()
-            # receive_file(conn=conn, file_name=recv_file_name)
 
         actual_chat_msg_list = actual_chat_msg.split("__")
         # print('[debug receiving idx 0]', actual_chat_msg_list[0])
         print("[debug receiving idx 1]", actual_chat_msg_list[1])
         client_message_content = actual_chat_msg_list[1]
-
-            # if client_message_content == protocols.FILETRANSFER:
-            #     if len(actual_chat_msg_list) > 2:
-            #         # print('[debug receiving idx 1]', actual_chat_msg_list[2])
-            #         if actual_chat_msg_list[2] == protocols.FILETRANSEND:
-            #             CONVO_DICT[client_alias] += (
-            #                 f"{client_alias} sent a file." + "<!>"
-            #             )
-            #         elif actual_chat_msg_list[2] == protocols.ADVERTISEFILE:
-            #             # print('some more debugging: ', len(actual_chat_msg_list))
-            #             # what the fuck?
-            #             # print(actual_chat_msg_list)
-            #             print("[debug receiving idx 3]", actual_chat_msg_list[3])
-            #             recv_file_name = actual_chat_msg_list[3]
-            #             # file = open(recv_file_name, "wb")
-            #             print("[DEBUG FILE RECV]: ", recv_file_name)
-            #         # elif actual_chat_msg_list[2] == protocols.FILECONTENT:
-            #         #     file = open(recv_file_name, "wb")
-            #         #     file_data += actual_chat_msg_list[3]
-            #         #     file.write(file_data)
-            #         #     file.close()
-            #         # if file_data != "":
-            #         #     print('[debug - file data]: ',file_data)
         client_message_content = f"[{client_alias}]: " + client_message_content
         if client_alias not in CONVO_DICT:
             CONVO_DICT[client_alias] = ""
-            # if protocols.FILETRANSFER not in client_message_content:
-            #     print("What is this", client_message_content)
-            #     print("got this")
         CONVO_DICT[client_alias] += client_message_content + "<!>"
         print("[debug]: ", CONVO_DICT[client_alias])
         if client_alias == CURRENT_ALIAS:
@@ -202,32 +162,36 @@ def send_message(conn):
 
 
 def send_string(conn, string):
-    conn.sendall(string.encode() + b'\n')
+    conn.sendall(string.encode() + b"\n")
+
 
 def send_int(conn, integer):
-    conn.sendall(str(integer).encode() + b'\n')
+    conn.sendall(str(integer).encode() + b"\n")
+
 
 def transmit(conn, filename):
-    # notifies server that a file is coming    
+    # notifies server that a file is coming
     basename = os.path.basename(filename)
     filesize = os.path.getsize(filename)
-    print(f'[debugging - sending file]: {basename} ({filesize} bytes)')
-    
-    send_string(conn, basename) 
+    print(f"[debugging - sending file]: {basename} ({filesize} bytes)")
+
+    send_string(conn, basename)
     send_int(conn, filesize)
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         conn.sendall(f.read())
 
+
 def receive_file(conn):
-    with conn.makefile('rb') as clientfile:
-        #while True:
+    with conn.makefile("rb") as clientfile:
+        # while True:
         filename = clientfile.readline().strip().decode()
         filesize = int(clientfile.readline())
         data = clientfile.read(filesize)
 
-        print(f'Receiving file: {filename} ({filesize} bytes)')
-        with open(f'received_{filename}', 'wb') as f:
+        print(f"Receiving file: {filename} ({filesize} bytes)")
+        with open(f"received_{filename}", "wb") as f:
             f.write(data)
+
 
 # -----------CONNECT TO OTHER CONFIGURATION END----------
 login_status = ""
@@ -280,10 +244,12 @@ login_status = do_login(my_alias)
 # rejects user if the alias already exists in list
 if login_status == "The name you entered was chosen already!":
     sg.popup(login_status)
+    client_socket.send((protocols.DISCONNECT).encode(FORMAT))
+    client_socket.close()
     sys.exit()
 
 
-onlinePeersLayout = [
+online_peer_list_layout = [
     [sg.Text(login_status)],
     [sg.Text("Click refresh to check out available people", key="-ONLINECOUNT-")],
     [
@@ -298,9 +264,9 @@ onlinePeersLayout = [
     [sg.Button("Refresh", key="-GETFRIENDS-"), sg.Button("Log off")],
 ]
 
-message_layout = [
+main_chat_layout = [
     [sg.Text(key="-CURRENTALIAS-")],
-    [sg.Multiline(size=(40, 20), key="-CHATOUTPUT-" + sg.WRITE_ONLY_KEY)],
+    [sg.Multiline(size=(40, 10), key="-CHATOUTPUT-" + sg.WRITE_ONLY_KEY)],
     [
         sg.Multiline(
             size=(35, 2),
@@ -313,7 +279,7 @@ message_layout = [
     ],
     [
         sg.Text("File", size=(5, 1), key="-FILEBROWSELABEL-"),
-        sg.Input(key="-FILEBROWSENAMESHOW-", size=(10, 1)),
+        sg.Input(key="-FILEBROWSENAMESHOW-", size=(15, 1)),
         sg.FileBrowse(key="-FILEBROWSEBUTTON-"),
         sg.Button("Send File", key="-SENDFILE-"),
     ],
@@ -321,8 +287,8 @@ message_layout = [
 
 chat_layout = [
     [
-        sg.Column(onlinePeersLayout, element_justification="c", pad=(20, 20)),
-        sg.Column(layout=message_layout, element_justification="c", pad=(20, 20)),
+        sg.Column(layout=online_peer_list_layout, element_justification="c", pad=(20, 20)),
+        sg.Column(layout=main_chat_layout, element_justification="c", pad=(20, 20)),
     ]
 ]
 listening_thread = threading.Thread(target=on_new_connection, daemon=True)
@@ -372,6 +338,7 @@ while True:
         # print(values)
         selection = values[event]
         if selection:
+            window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].update("")
             # print(selection[0])
             # get the alias to connect to
             alias_to_connect = selection[0]
@@ -409,25 +376,26 @@ while True:
             client_thread.start()
     elif event == "-SENDFILE-":
         print(values)
-        filename = values["-FILEBROWSENAMESHOW-"]        
-        CONNECTION_DICTIONARY[CURRENT_ALIAS].send((protocols.FILETRANSBEGIN).encode(FORMAT))
+        filename = values["-FILEBROWSENAMESHOW-"]
+        CONNECTION_DICTIONARY[CURRENT_ALIAS].send(
+            (protocols.FILETRANSBEGIN).encode(FORMAT)
+        )
         query_to_print = f"{my_alias} sent a file!"
         CONVO_DICT[CURRENT_ALIAS] += query_to_print + "<!>"
         window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(query_to_print)
         transmit(CONNECTION_DICTIONARY[CURRENT_ALIAS], filename)
     elif event == "-SENDBUTTON-":
-        print(event, values)
+        # print(event, values)
         query = ""
         query = values["-QUERY-"].rstrip()
-        # EXECUTE YOUR COMMAND HERE
-        # print('[Nho] {}'.format(query), flush=True)
-        # print(values["-QUERY-"].rstrip())
         query_to_print = f"[{my_alias}]: " + query
         CONVO_DICT[CURRENT_ALIAS] += query_to_print + "<!>"
         window["-CHATOUTPUT-" + sg.WRITE_ONLY_KEY].print(query_to_print)
         # print("[DEBUG] after send event", CONNECTION_DICTIONARY[CURRENT_ALIAS])
-        print('some stuff occurred here',CONNECTION_DICTIONARY)
-        CONNECTION_DICTIONARY[CURRENT_ALIAS].send((protocols.PEERSEND + "__" + query).encode(FORMAT))
+        # print("some stuff occurred here", CONNECTION_DICTIONARY)
+        CONNECTION_DICTIONARY[CURRENT_ALIAS].send(
+            (protocols.PEERSEND + "__" + query).encode(FORMAT)
+        )
     elif event == sg.WIN_CLOSED or event == "Log off":
         client_socket.send((protocols.DISCONNECT).encode(FORMAT))
         client_socket.close()
